@@ -1,0 +1,224 @@
+
+	
+	// 바 차트생성
+	function makeBarChart5( div_id, pWidth, pHeight ){
+		
+		// Size 초기화
+		var margin = {top: 20, right: 30, bottom: 70, left: 30};
+		var width = pWidth - margin.left - margin.right;
+		var height = pHeight - margin.top - margin.bottom;
+		
+		
+		
+		// 기본 svg 객체
+		var svg = d3.select("#" + div_id).append("svg")
+							.attr("width", width + margin.left + margin.right)
+							.attr("height", height + margin.top + margin.bottom)
+							.append("g")
+								.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		
+		// 레전드(범례) 객체
+		var legend = svg.append("g")
+								.attr("class", "legend")
+								.attr("data-style-padding", 10)
+								.attr("transform", "translate(0, " + (margin.top + height + 7) + ")" );
+		
+		// 레전드(범례) box 생성
+		var legend_box = legend.append("rect")
+									.attr("class", "legend-box")
+									.attr("width", width)
+									.attr("height", 20)
+									.attr("fill", "none")
+									.attr("stroke", "gray")
+									.attr("stroke-width", "0.03em");
+		
+		
+		// 축(axis) 
+		var x0 = d3.scaleBand().rangeRound([0, width], 0.2).paddingInner(0.1);
+		var x1 = d3.scaleBand().padding(0.02).paddingOuter(0.3);
+		
+		var y0 = d3.scaleLinear().rangeRound([height, 0]);			// left
+		
+		var xAxis = d3.axisBottom(x0).ticks();
+		var yAxis = d3.axisLeft(y0).ticks();		// left
+		
+		// 색상 팔레트
+		var barColors = d3.scaleOrdinal().range(["steelblue", "darkslategray"]);
+		
+		// 마우스오버 시 툴팁
+		var tooltip = d3.select("body").append("div")	
+						    .attr("class", "tooltip")				
+						    .style("opacity", 0);
+		
+		
+		
+		
+		
+		// 데이터 조회 (bar차트)
+		d3.json(	
+					"./data/chart5/groupbar.json",
+					function(error, data) {
+						
+							//**************************** ① 초기화 ***************************************************************
+						
+							if (error) throw error;
+							
+							// 숫자데이터 casting(숫자타입으로 변환)
+							data.forEach(function( d, i ){
+								var columns = d3.keys( d );
+								for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];
+								return d;							
+							});
+							
+							  
+							//키항목 추출
+							var keys = d3.keys( data[data.length-1] ) ;
+							
+							
+							// 정의역(범위) 설정
+							x0.domain(data.map(function(d) { return d.Year; }));			// bar chart x축
+							x1.domain(keys.slice(1)).rangeRound([0, x0.bandwidth()]);		// bar chart 그룹bar 내 단위 bar
+							
+							
+							// 정의역(범위) 설정 y축
+							var min = d3.min(data, function(d) { return d3.min(keys.slice(1), function(key) { return d[key]; }); });
+							if(min > 0) min=0;
+							var max = d3.max(data, function(d) { return d3.max(keys.slice(1), function(key) { return d[key]; }); });
+							if(max < 0) max=0;
+							y0.domain([min, max]).nice();		// bar chart y축 left
+								
+								
+							// x축 생성	
+							svg.append("g")
+								.attr("class", "xAxis")
+								.attr("transform", "translate(0," + height + ")")
+								.call(xAxis);
+							
+							// x축 생성 --> zero line 
+							if(min < 0 ){
+								svg.append("g")
+								.attr("class", "xAxis-zero")
+						        .attr("transform", "translate(0," + y0(0) + ")")
+						        .call(xAxis.tickFormat("").tickSize(0));	
+							}
+						     
+							
+							// y축(left) 생성
+							svg.append("g")
+								.attr("class", "yAxis-left")
+								.call(yAxis);
+							
+								
+							
+							//**************************** ② 막대차트 ***************************************************************
+							
+							// bar 차트 생성
+							var barChartGruop = svg.append("g")
+														.attr("class", "barchart");
+							
+							var barChartUnitGroup = barChartGruop.selectAll("g")
+																.data(data)
+																.enter().append("g")
+																    .attr("class", function(d,i){ return "barGroup-" + (i+1); } )  
+																    .attr("transform", function(d) { return "translate(" + x0(d.Year) + ",0)"; });
+								    
+							var barChartUnit = barChartUnitGroup.selectAll("rect")
+														.data(function(d) { return keys.slice(1).map(function(key) { return {key: key, value: d[key], year : d.Year}; }); })
+													    .enter().append("rect")
+													      .attr("x", function(d) { return x1(d.key); })
+													      .attr("y", function(d) { return d.value < 0 ? y0(0) : y0(d.value); })		// positive, negative 차트 판단
+													      //.attr("y", function(d) { return y0(d.value); })
+													      .attr("width", 0)
+													      .attr("height", 0)
+													      .style("fill-opacity",0)
+													      .attr("fill", function(d) { return barColors(d.key); })
+													      .on("mouseover", function(d) {
+													    	  //강조효과
+													    	  d3.select(this)
+													    	  	.style("fill-opacity",0.7)
+													    	  	.attr("stroke", d3.select(this).attr("fill") )
+							            						.attr("stroke-width", 2);
+													    	  
+													    	  // tooltip용 div 생성
+													            tooltip.transition()		
+													                .duration(200)		
+													                .style("border-color", barColors(d.key) )
+													                .style("opacity", .9);
+													    	  
+													            tooltip.html("<b>" + d.key + "</b><br>" + d.year + "<br>" + d3.format(",")(d.value) )	
+													                .style("left", (d3.event.pageX - 10) + "px")		
+													                .style("top", (d3.event.pageY - 20) + "px");
+														   })					
+													      .on("mouseout", function(d) {
+													    		//강조효과 해제
+													    	  	d3.select(this)
+														    	  	.style("fill-opacity",0.9)
+														    	  	.attr("stroke-width", 0);	
+													    	  
+													    	  d3.select(this.parentNode).selectAll("circle").remove();	// Circle 제거
+													    	  		
+													    			// tooltip용 div 제거
+													    	  		tooltip.transition()		
+														                .duration(500)		
+														                .style("opacity", 0);
+													      })
+													      .transition()		// 시간차로 차트 생성 효과 
+															  .duration(500)
+															  .attr("width", x1.bandwidth())
+															  .attr("height", function(d) { return  Math.abs( y0(d.value) - y0(0) );  } ) // negative 차트를 고려한 height 설정
+															  .style("fill-opacity",0.9);
+													      
+							
+							
+									
+									
+
+
+							
+							
+							
+							
+							//**************************** ③ 막대차트 레전드(범례) ***************************************************************
+							var legend_unit_size = 10;	// 단위 사이즈
+							
+							var legend_items = legend.append("g")
+														.attr("class", "barchart-legend-items")
+														.attr("font-family", "sans-serif")
+													    .attr("font-size", 10)
+													    .attr("text-anchor", "start");
+							
+							
+							var spacing = [0, 110];	// 각 legend 사이 간격 수동조절
+							var box_padding = {left: 5, top: 5};	// legend BOX padding
+							
+							keys.slice(1).forEach( function(d,i){
+								
+									legend_items.append("rect")
+												.attr("x", spacing[i] + box_padding.left )
+												.attr("y", box_padding.top )
+										     	.attr("width", legend_unit_size)
+										    	.attr("height", legend_unit_size)
+										    	.attr("fill", barColors( d ) );
+									
+									legend_items.append("text")
+												.attr("x", spacing[i] + box_padding.left + legend_unit_size + 3 )
+											    .attr("y", box_padding.top)
+											    .attr("dy", "0.8em")
+											    .text( d );
+							});
+							
+							
+					}
+		);	//end bar 차트
+		
+		
+		
+		
+		
+		
+		
+	}// End of function -> makeBarChart
+		
+		
+	
+		

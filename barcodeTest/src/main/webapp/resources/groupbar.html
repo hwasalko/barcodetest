@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style>
+	.axis .domain {
+	  display: inline;
+	}
+	
+	div.tooltip {	
+	    position: absolute;			
+	    text-align: left;			
+	    width: 90px;					
+	    height: 45px;					
+	    padding: 2px;				
+	    font: 12px sans-serif;		
+	    background: white;	
+	    border: 2px solid blue;		
+	    border-radius: 5px;			
+	    pointer-events: none;	
+	    line-height: 135%;		
+	}
+</style>
+
+<svg width="460" height="255"></svg>
+
+<script src="./js/d3.v4.min.js"></script>
+
+
+
+<script>
+
+		// 초기화
+		var svg = d3.select("svg");													// svg 객체
+		
+		var margin = {top: 10, right: 30, bottom: 50, left: 30};					// 마진
+		var width = +svg.attr("width") - margin.left - margin.right;			// 폭
+		var height = +svg.attr("height") - margin.top - margin.bottom;		// 높이
+		
+		
+		var g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		
+		var x0 = d3.scaleBand().rangeRound([0, width]).paddingInner(0.1);		// 그룹 bar
+		var x1 = d3.scaleBand().padding(0.02).paddingOuter(0.3);										// 그룹내 단위 bar
+		var x2 = d3.scaleLinear().range([0, width]);		// line 차트용
+		
+		var y = d3.scaleLinear().rangeRound([height, 0]);			// bar 차트용
+		var y2 = d3.scaleLinear().rangeRound([height, 0]);			// line 차트용
+		
+		var z = d3.scaleOrdinal().range(["steelblue", "gray", "yellowgreen"]);
+		
+		
+		// Define the div for the tooltip
+		var div = d3.select("body").append("div")	
+		    .attr("class", "tooltip")				
+		    .style("opacity", 0);
+		
+
+		
+		
+		// BAR 차트
+		d3.csv(	
+				"./data/groupbar.csv", 
+				function(d, i, columns) {
+					  for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];		// casting 처리
+					  return d;
+				}, 
+				function(error, data) {
+					  if (error) throw error;
+					  
+					  var keys = data.columns.slice(1);	// PK
+					
+					  // 도메인 설정
+					  x0.domain(data.map(function(d) { return d.Year; }));
+					  x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+					  y.domain([0, d3.max(data, function(d) { return d3.max(keys, function(key) { return d[key]; }); })]).nice();
+					
+					  
+					  // bar 차트 생성
+					  g.append("g")
+					  		.attr("class", "barchart")
+						    .selectAll("g")
+							    .data(data)
+							    .enter().append("g")
+								    .attr("class", "barGroup")  
+								    .attr("transform", function(d) { return "translate(" + x0(d.Year) + ",0)"; })
+						    .selectAll("rect")
+							    .data(function(d) { return keys.map(function(key) { return {key: key, value: d[key], year : d.Year}; }); })
+							    .enter().append("rect")
+							      .attr("x", function(d) { return x1(d.key); })
+							      .attr("y", function(d) { return y(d.value); })
+							      .attr("width", x1.bandwidth())
+							      .attr("height", function(d) { return height - y(d.value); })
+							      .attr("fill", function(d) { return z(d.key); })
+							      .on("mouseover", function(d) {
+							    	  
+							    		// Circle 동적 생성
+							            var temp_circle = d3.select(this.parentNode)		
+							            	.append("circle")
+										  		.attr("r", 5)		
+										    	.attr("stroke", z(d.key) )
+										    	.attr("stroke-width", "1")
+										    	.attr("fill", "white" )
+										    	.attr("opacity", .8 )
+										    	.attr("cx", x1(d.key) + x1.bandwidth() / 2 )
+										      	.attr("cy", y(d.value) );
+							    	  
+							    	  // tooltip용 div 생성
+							            div.transition()		
+							                .duration(200)		
+							                .style("border-color", z(d.key) )
+							                .style("opacity", .8);
+							            div	.html("<b>" + d.key + "</b><br>" + d.year + "<br>" + d3.format(",")(d.value) )	
+							                .style("left", (d3.event.pageX - 10) + "px")		
+							                .style("top", (d3.event.pageY - 20) + "px");
+								            
+								   })					
+							      .on("mouseout", function(d) {
+							    	  		
+							    			// Circle 제거
+							            	d3.select(this.parentNode).selectAll("circle").remove();	// Circle 제거
+							    	  
+							    	  		// tooltip용 div 제거
+							    	  		div.transition()		
+								                .duration(500)		
+								                .style("opacity", 0);	
+							    	  		
+							      });
+							    
+							    
+							    
+						
+					  
+					  // x축 생성
+					  g.append("g")
+					      .attr("class", "axisX")
+					      .attr("transform", "translate(0," + height + ")")
+					      .call(d3.axisBottom(x0));
+					
+					  
+					  // y축 left 생성
+					  g.append("g")
+					      .attr("class", "axisYleft")
+					      .call(d3.axisLeft(y).ticks());
+					  
+					  
+				          
+					      
+					// 범례 단위사이즈
+					var legend_unit_size = x1.bandwidth() * 0.4;           
+					      
+					var legend = g.append("g")
+						  .attr("transform", "translate( 0 , " + (height + margin.bottom/2 + margin.top/2)   + ")" )
+						  .attr("font-family", "sans-serif")
+					      .attr("font-size", 10)
+					      .attr("text-anchor", "end")
+					      .attr("class", "legend")
+					    .selectAll("g")
+						    .data(keys.slice().reverse())
+						    .enter().append("g")
+					      		.attr("transform", function(d, i) { return  "translate(" + i * (legend_unit_size*2 + d.length*10) + ", 0)"; });
+					
+					  
+					      
+					  legend.append("rect")
+					      .attr("x", legend_unit_size)
+					      .attr("width", legend_unit_size)
+					      .attr("height", legend_unit_size)
+					      .attr("fill", z);
+					
+					  legend.append("text")
+					      .attr("x", margin.left + legend_unit_size*3 )
+					      .attr("y", 9)
+					      .attr("dy", "0.1em")
+					      .text(function(d) { return d; });
+				});
+		
+		
+		
+		
+		
+		
+		var valueline = d3.line()
+		    .x(function(d) { return x2(d.year); })
+		    .y(function(d) { return y2(d.val1); });
+
+		
+		
+		d3.csv("./data/groupbar2.csv",
+				function(d, i, columns) {
+					  for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];		// casting 처리
+					  return d;
+				},  
+				function(error, data) {
+					
+					  if (error) throw error;
+					  
+					  var keys = data.columns.slice(1);	// PK
+					  
+					  x2.domain(d3.extent(data, function(d) { return d.year; }));
+					  y2.domain(d3.extent(data, function(d) { return d.val1; }));
+					  
+		
+					
+					  
+					  
+					// y축 right 생성
+					  g.append("g")
+					    .attr("class", "axisYright")
+					    .attr("transform", "translate(" + width + ", 0)")
+					    .call( d3.axisRight(y2).ticks() )
+					    .append("text")
+					      .attr("x", 0 )
+					      .attr("y", -1 * margin.top * 0.8 )
+					      .attr("dx", "0.75em")
+					      .attr("fill", "green")
+					      .attr("font-weight", "bold")
+					      .attr("text-anchor", "start")
+					      .text("[비율]");       
+
+					  
+				});
+		
+
+</script>

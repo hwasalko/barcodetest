@@ -60,4 +60,5 @@ public class BarcodeGenController {
 		return "qrcode";
 	}
 	
+	
 }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+	<style>
+		div.tooltip {	
+		    position: absolute;			
+		    text-align: left;			
+		    padding: 2px;				
+		    font: 12px sans-serif;		
+		    background: white;	
+		    border: 2px solid blue;		
+		    border-radius: 5px;			
+		    pointer-events: none;	
+		    line-height: 135%;		
+		}
+	</style>
+	
+	<script src="./js/d3.v4.min.js"></script>
+	<script src="./chart1.js"></script>
+	<script src="./chart2.js"></script>
+	<script src="./chart3.js"></script>
+	<script src="./chart4.js"></script>
+	<script src="./chart5.js"></script>
+	<script src="./chart6.js"></script>
+	<script src="./chart7.js"></script>
+	<script src="./chart8.js"></script>
+	
+
+<body>
+
+	<table align="center">
+		<tr>
+			<th width="480">주요 재무항목 (억원)</th>
+			<th width="480">안전성 지표 (%)</th>
+		</tr>
+		<tr>
+			<td id="chart1"></td>
+			<td id="chart2"></td>
+		</tr>
+		
+		<tr height="80">
+			<td></td><td></td>
+		</tr>
+		
+		<tr>
+			<th width="480">주요 재무항목 (억원)</th>
+			<th width="480">수익성장 지표 (억원, %)</th>
+		</tr>
+		<tr>
+			<td id="chart3"></td>
+			<td id="chart4"></td>
+		</tr>
+		
+		<tr height="80">
+			<td></td><td></td>
+		</tr>		
+		
+		<tr>
+			<th width="480">주요 재무항목 (억원)</th>
+			<th width="480">현금흐름 지표 (%)</th>
+		</tr>
+		<tr>
+			<td id="chart5"></td>
+			<td id="chart6"></td>
+		</tr>
+		
+		<tr height="80">
+			<td></td><td></td>
+		</tr>
+		
+		<tr>
+			<th width="480">수익성 지표</th>
+			<th width="480">성장성 지표</th>
+		</tr>
+		<tr>
+			<td id="chart7"></td>
+			<td id="chart8"></td>
+		</tr>
+	</table>
+
+	
+
+
+
+	<script>
+		makeBarChart1( 'chart1', 460, 255 );
+		makeBarChart2( 'chart2', 460, 255 );
+		makeBarChart3( 'chart3', 460, 255 );
+		makeBarChart4( 'chart4', 460, 255 );
+		makeBarChart5( 'chart5', 460, 255 );
+		makeBarChart6( 'chart6', 460, 255 );
+		makeBarChart7( 'chart7', 460, 255 );
+		makeBarChart8( 'chart8', 460, 255 );
+	</script>
+
+</body>

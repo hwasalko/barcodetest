@@ -21,6 +21,7 @@ import org.krysalis.barcode4j.servlet.BarcodeServlet;
 import org.krysalis.barcode4j.tools.MimeTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.google.zxing.BarcodeFormat;
@@ -59,7 +60,7 @@ public class BarcodeGenServiceImpl implements BarcodeGenService {
 		logger.info("==> barcodeType : " + barcodeType);
     	
     	/* 바코드 데이터 */
-    	String barcodeData = "abcdefghijklmnopqrstuvwxyz";
+    	String barcodeData = "http://filing.krx.co.kr/";
     	
     	/* 이미지의 dpi */
     	final int dpi = 200;
